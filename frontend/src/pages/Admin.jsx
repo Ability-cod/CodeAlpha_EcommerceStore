@@ -233,11 +233,22 @@ function ProductManager({ products, reload }) {
 function OrderManager({ orders, reload }) {
   const { token } = useAuth();
   const { notify } = useToast();
+  const [openId, setOpenId] = useState(null);
 
   const changeStatus = async (id, status) => {
     try {
       await api(`/orders/${id}/status`, { method: 'PUT', token, body: { status } });
       notify(`Order #${id} marked as ${status}`);
+      reload();
+    } catch (err) {
+      notify(err.message, 'error');
+    }
+  };
+
+  const changePayment = async (id, paymentStatus) => {
+    try {
+      await api(`/orders/${id}/payment`, { method: 'PUT', token, body: { paymentStatus } });
+      notify(`Order #${id} payment marked as ${paymentStatus}`);
       reload();
     } catch (err) {
       notify(err.message, 'error');
@@ -265,12 +276,14 @@ function OrderManager({ orders, reload }) {
               <th>Date</th>
               <th>Items</th>
               <th>Total</th>
+              <th>Payment</th>
               <th>Status</th>
+              <th></th>
             </tr>
           </thead>
-          <tbody>
-            {orders.map((o) => (
-              <tr key={o.id}>
+          {orders.map((o) => (
+            <tbody key={o.id}>
+              <tr>
                 <td><strong>#{o.id}</strong></td>
                 <td>
                   {o.customer_name}
@@ -280,21 +293,56 @@ function OrderManager({ orders, reload }) {
                 <td>{Number(o.item_count)}</td>
                 <td>{formatPrice(o.total_amount)}</td>
                 <td>
+                  <div style={{ fontSize: '.85rem', color: 'var(--muted)', marginBottom: 4 }}>
+                    {o.payment_method === 'cod' ? 'Cash on delivery' : 'Card'}
+                  </div>
+                  <select className="select" value={o.payment_status} onChange={(e) => changePayment(o.id, e.target.value)}>
+                    <option value="unpaid">unpaid</option>
+                    <option value="paid">paid</option>
+                  </select>
+                </td>
+                <td>
                   <select className="select" value={o.status} onChange={(e) => changeStatus(o.id, e.target.value)}>
                     {STATUSES.map((s) => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                 </td>
+                <td>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setOpenId(openId === o.id ? null : o.id)}>
+                    {openId === o.id ? 'Hide' : 'Details'}
+                  </button>
+                </td>
               </tr>
-            ))}
-          </tbody>
+
+              {openId === o.id && (
+                <tr className="detail-row">
+                  <td colSpan="8">
+                    {o.shipping_name ? (
+                      <>
+                        <strong>Deliver to:</strong> {o.shipping_name} · {o.shipping_phone}
+                        <br />
+                        {o.shipping_address}, {o.shipping_city}, {o.shipping_country}
+                        {o.shipping_notes && (
+                          <>
+                            <br />
+                            <span style={{ color: 'var(--muted)' }}>Note: {o.shipping_notes}</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--muted)' }}>No delivery details recorded for this order.</span>
+                    )}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          ))}
         </table>
       </div>
     </div>
   );
 }
-
 export default function Admin() {
   const { token } = useAuth();
   const [tab, setTab] = useState('products');
@@ -333,7 +381,7 @@ export default function Admin() {
       <div className="stats">
         <div className="stat-card"><span>Products</span><strong>{products.length}</strong></div>
         <div className="stat-card"><span>Orders</span><strong>{orders.length}</strong></div>
-        <div className="stat-card"><span>Revenue</span><strong>{formatPrice(revenue)}</strong></div>
+        <div className="stat-card"><span>Paid revenue</span><strong>{formatPrice(revenue)}</strong></div>
         <div className="stat-card"><span>Low stock (5 or fewer)</span><strong>{lowStock}</strong></div>
       </div>
 

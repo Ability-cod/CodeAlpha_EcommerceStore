@@ -237,3 +237,32 @@ textarea.input { resize: vertical; min-height: 96px; }
   .cart-line-total { text-align: left; }
   .order-head { grid-template-columns: 1fr 1fr; }
 }
+
+/* Checkout */
+.checkout-main { display: flex; flex-direction: column; gap: 20px; }
+.pay-option { display: flex; align-items: center; gap: 14px; padding: 16px; border: 2px solid var(--border); border-radius: 14px; cursor: pointer; transition: 0.15s; }
+.pay-option input { accent-color: var(--primary); width: 18px; height: 18px; }
+.pay-option div { flex: 1; display: flex; flex-direction: column; }
+.pay-option div span { color: var(--muted); font-size: 0.875rem; }
+.pay-option.selected { border-color: var(--primary); background: var(--primary-soft); }
+.pay-option.disabled { opacity: 0.55; cursor: not-allowed; }
+.summary-items { display: flex; flex-direction: column; gap: 12px; max-height: 260px; overflow-y: auto; }
+.mini-item { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; }
+.mini-item .cart-thumb { width: 44px; height: 44px; }
+.mini-item .grow { flex: 1; }
+
+/* Order delivery and payment info */
+.order-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding-top: 14px; margin-top: 8px; border-top: 1px dashed var(--border); }
+.order-meta h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 6px; }
+.order-meta p { font-size: 0.92rem; }
+.badge.paid { background: #dcfce7; color: #166534; }
+.badge.unpaid { background: #fef3c7; color: #92400e; }
+.detail-row td { background: #f8fafc; font-size: 0.92rem; }
+
+/* Order success */
+.success-card { max-width: 520px; margin: 32px auto; background: #fff; border: 1px solid var(--border); border-radius: 24px; padding: 40px 32px; text-align: center; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.success-icon { width: 64px; height: 64px; border-radius: 50%; background: #dcfce7; color: var(--success); display: grid; place-items: center; font-size: 2rem; font-weight: 800; }
+
+@media (max-width: 720px) {
+  .order-meta { grid-template-columns: 1fr; }
+}

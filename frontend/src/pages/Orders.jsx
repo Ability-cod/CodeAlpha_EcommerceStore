@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, formatPrice, imageSrc } from '../api';
+import { api, formatPrice, imageSrc, paymentLabel } from '../api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Orders() {
@@ -86,6 +86,35 @@ export default function Orders() {
                     </div>
                   );
                 })}
+
+                <div className="order-meta">
+                  <div>
+                    <h4>Delivery</h4>
+                    {order.shipping_name ? (
+                      <>
+                        <p>
+                          {order.shipping_name}
+                          <br />
+                          {order.shipping_address}
+                          <br />
+                          {order.shipping_city}, {order.shipping_country}
+                          <br />
+                          {order.shipping_phone}
+                        </p>
+                        {order.shipping_notes && (
+                          <p style={{ color: 'var(--muted)', marginTop: 6 }}>Note: {order.shipping_notes}</p>
+                        )}
+                      </>
+                    ) : (
+                      <p style={{ color: 'var(--muted)' }}>No delivery details recorded.</p>
+                    )}
+                  </div>
+                  <div>
+                    <h4>Payment</h4>
+                    <p style={{ marginBottom: 6 }}>{paymentLabel(order.payment_method)}</p>
+                    <span className={`badge ${order.payment_status}`}>{order.payment_status}</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>

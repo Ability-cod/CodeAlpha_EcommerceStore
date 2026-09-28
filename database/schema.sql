@@ -26,6 +26,14 @@ CREATE TABLE IF NOT EXISTS orders (
   user_id INT NOT NULL,
   total_amount DECIMAL(10,2) NOT NULL,
   status ENUM('pending','processing','shipped','delivered','cancelled') DEFAULT 'pending',
+  shipping_name VARCHAR(100) NOT NULL DEFAULT '',
+  shipping_phone VARCHAR(30) NOT NULL DEFAULT '',
+  shipping_country VARCHAR(80) NOT NULL DEFAULT '',
+  shipping_city VARCHAR(80) NOT NULL DEFAULT '',
+  shipping_address VARCHAR(255) NOT NULL DEFAULT '',
+  shipping_notes VARCHAR(255) NULL,
+  payment_method ENUM('cod','card') NOT NULL DEFAULT 'cod',
+  payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id)
 );

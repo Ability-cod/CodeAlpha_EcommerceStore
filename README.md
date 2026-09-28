@@ -11,13 +11,14 @@ Customers can browse products, fill a cart and place orders. Admins manage the c
 - Browse products with search, category filters and sorting
 - Product details page with live stock information
 - Shopping cart with quantity controls (saved in the browser)
-- Checkout that creates an order and reduces stock
+- Checkout with delivery details and **cash on delivery** payment
 - Order history with item details and status
 
 **Admin**
 - Dashboard with key numbers: products, orders, revenue and low-stock items
 - Add, edit and delete products with **image upload** and live preview
 - View all orders and update their status
+- See delivery details and mark orders as paid or unpaid
 
 **Quality and security**
 - Passwords hashed with bcrypt, JWT-protected routes, role-based access (customer / admin)
@@ -108,10 +109,11 @@ CodeAlpha_EcommerceStore/
 | GET | `/api/orders/:id/items` | Owner / Admin | Items in an order |
 | GET | `/api/orders/all` | Admin | List all orders |
 | PUT | `/api/orders/:id/status` | Admin | Update order status |
+| PUT | `/api/orders/:id/payment` | Admin | Mark an order as paid or unpaid |
 
 ## Planned improvements
 
-- Shipping address and payment method at checkout (cash on delivery first, then card payments through a payment gateway)
+- Online card payments through a payment gateway
 
 ## Author
 

@@ -3,10 +3,37 @@ const {
   getOrdersByUser,
   getOrderItems,
   getAllOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  updatePaymentStatus
 } = require('../models/orderModel');
 
 const STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+const PAYMENT_STATUSES = ['unpaid', 'paid'];
+const PAYMENT_METHODS = ['cod']; // card payments will be added later
+const FIELD_LIMITS = { name: 100, country: 80, city: 80, address: 255, notes: 255 };
+
+const validateShipping = (shipping = {}) => {
+  const data = {
+    name: String(shipping.name || '').trim(),
+    phone: String(shipping.phone || '').trim(),
+    country: String(shipping.country || '').trim(),
+    city: String(shipping.city || '').trim(),
+    address: String(shipping.address || '').trim(),
+    notes: String(shipping.notes || '').trim()
+  };
+
+  if (data.name.length < 2) return { error: 'Please enter the recipient full name' };
+  if (!/^\+?[\d\s()-]{7,20}$/.test(data.phone)) return { error: 'Please enter a valid phone number' };
+  if (data.country.length < 2) return { error: 'Please enter the country' };
+  if (data.city.length < 2) return { error: 'Please enter the city' };
+  if (data.address.length < 5) return { error: 'Please enter the full delivery address' };
+
+  for (const [key, max] of Object.entries(FIELD_LIMITS)) {
+    if (data[key].length > max) return { error: 'Some delivery fields are too long' };
+  }
+
+  return { data };
+};
 
 const checkout = async (req, res) => {
   const { items } = req.body;
@@ -14,6 +41,14 @@ const checkout = async (req, res) => {
 
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Your cart is empty' });
+  }
+
+  const { data: shipping, error: shippingError } = validateShipping(req.body.shipping);
+  if (shippingError) return res.status(400).json({ message: shippingError });
+
+  const paymentMethod = req.body.paymentMethod || 'cod';
+  if (!PAYMENT_METHODS.includes(paymentMethod)) {
+    return res.status(400).json({ message: 'This payment method is not available yet' });
   }
 
   // Validate input and merge duplicate products
@@ -58,8 +93,21 @@ const checkout = async (req, res) => {
     }
 
     const [orderResult] = await connection.query(
-      'INSERT INTO orders (user_id, total_amount, status) VALUES (?, ?, ?)',
-      [userId, totalAmount.toFixed(2), 'pending']
+      `INSERT INTO orders
+        (user_id, total_amount, status, shipping_name, shipping_phone, shipping_country,
+         shipping_city, shipping_address, shipping_notes, payment_method, payment_status)
+       VALUES (?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?, 'unpaid')`,
+      [
+        userId,
+        totalAmount.toFixed(2),
+        shipping.name,
+        shipping.phone,
+        shipping.country,
+        shipping.city,
+        shipping.address,
+        shipping.notes || null,
+        paymentMethod
+      ]
     );
     const orderId = orderResult.insertId;
 
@@ -136,4 +184,19 @@ const changeStatus = async (req, res) => {
   }
 };
 
-module.exports = { checkout, myOrders, orderDetails, allOrders, changeStatus };
+const changePayment = async (req, res) => {
+  try {
+    const { paymentStatus } = req.body;
+    if (!PAYMENT_STATUSES.includes(paymentStatus)) {
+      return res.status(400).json({ message: 'Invalid payment status' });
+    }
+    const affected = await updatePaymentStatus(req.params.id, paymentStatus);
+    if (!affected) return res.status(404).json({ message: 'Order not found' });
+    res.json({ message: 'Payment status updated' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Something went wrong on the server' });
+  }
+};
+
+module.exports = { checkout, myOrders, orderDetails, allOrders, changeStatus, changePayment };

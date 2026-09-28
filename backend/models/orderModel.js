@@ -35,4 +35,18 @@ const updateOrderStatus = async (id, status) => {
   return result.affectedRows;
 };
 
-module.exports = { getOrdersByUser, getOrderItems, getAllOrders, updateOrderStatus };
+const updatePaymentStatus = async (id, paymentStatus) => {
+  const [result] = await pool.query('UPDATE orders SET payment_status = ? WHERE id = ?', [
+    paymentStatus,
+    id
+  ]);
+  return result.affectedRows;
+};
+
+module.exports = {
+  getOrdersByUser,
+  getOrderItems,
+  getAllOrders,
+  updateOrderStatus,
+  updatePaymentStatus
+};

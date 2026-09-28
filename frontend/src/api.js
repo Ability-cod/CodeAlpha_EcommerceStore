@@ -25,3 +25,5 @@ export const imageSrc = (path) => {
   if (!path) return null;
   return path.startsWith('http') ? path : `${API_ORIGIN}${path}`;
 };
+
+export const paymentLabel = (method) => (method === 'cod' ? 'Cash on delivery' : 'Card payment');

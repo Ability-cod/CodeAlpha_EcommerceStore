@@ -1,45 +1,10 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { api, formatPrice, imageSrc } from '../api';
+import { formatPrice, imageSrc } from '../api';
 import QuantityStepper from '../components/QuantityStepper';
 
 export default function Cart() {
-  const { cartItems, removeFromCart, updateQuantity, clearCart, cartTotal } = useCart();
-  const { user, token } = useAuth();
-  const { notify } = useToast();
-  const navigate = useNavigate();
-
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-
-  const handleCheckout = async () => {
-    if (!user) {
-      navigate('/login', { state: { from: { pathname: '/cart' } } });
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    try {
-      await api('/orders/checkout', {
-        method: 'POST',
-        token,
-        body: {
-          items: cartItems.map((item) => ({ productId: item.id, quantity: item.quantity }))
-        }
-      });
-      clearCart();
-      notify('Order placed successfully!');
-      navigate('/orders');
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { cartItems, removeFromCart, updateQuantity, cartTotal } = useCart();
 
   if (cartItems.length === 0) {
     return (
@@ -99,10 +64,10 @@ export default function Cart() {
             <span>Total</span>
             <span>{formatPrice(cartTotal)}</span>
           </div>
-          {error && <div className="alert error">{error}</div>}
-          <button className="btn btn-block" onClick={handleCheckout} disabled={loading}>
-            {loading ? 'Placing order...' : user ? 'Place order' : 'Log in to checkout'}
-          </button>
+          <p style={{ color: 'var(--muted)', fontSize: '.875rem' }}>
+            Delivery details and payment method come next.
+          </p>
+          <Link to="/checkout" className="btn btn-block">Proceed to checkout</Link>
           <Link to="/" className="btn btn-ghost btn-block">Continue shopping</Link>
         </aside>
       </div>

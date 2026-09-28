@@ -266,3 +266,6 @@ textarea.input { resize: vertical; min-height: 96px; }
 @media (max-width: 720px) {
   .order-meta { grid-template-columns: 1fr; }
 }
+
+.order-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.order-actions span { color: var(--muted); font-size: 0.85rem; }

@@ -236,6 +236,9 @@ function OrderManager({ orders, reload }) {
   const [openId, setOpenId] = useState(null);
 
   const changeStatus = async (id, status) => {
+    if (status === 'cancelled' && !window.confirm(`Cancel order #${id}? Items will return to stock and this cannot be undone.`)) {
+      return;
+    }
     try {
       await api(`/orders/${id}/status`, { method: 'PUT', token, body: { status } });
       notify(`Order #${id} marked as ${status}`);
@@ -281,63 +284,66 @@ function OrderManager({ orders, reload }) {
               <th></th>
             </tr>
           </thead>
-          {orders.map((o) => (
-            <tbody key={o.id}>
-              <tr>
-                <td><strong>#{o.id}</strong></td>
-                <td>
-                  {o.customer_name}
-                  <div style={{ color: 'var(--muted)', fontSize: '.85rem' }}>{o.customer_email}</div>
-                </td>
-                <td>{new Date(o.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                <td>{Number(o.item_count)}</td>
-                <td>{formatPrice(o.total_amount)}</td>
-                <td>
-                  <div style={{ fontSize: '.85rem', color: 'var(--muted)', marginBottom: 4 }}>
-                    {o.payment_method === 'cod' ? 'Cash on delivery' : 'Card'}
-                  </div>
-                  <select className="select" value={o.payment_status} onChange={(e) => changePayment(o.id, e.target.value)}>
-                    <option value="unpaid">unpaid</option>
-                    <option value="paid">paid</option>
-                  </select>
-                </td>
-                <td>
-                  <select className="select" value={o.status} onChange={(e) => changeStatus(o.id, e.target.value)}>
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
-                </td>
-                <td>
-                  <button className="btn btn-ghost btn-sm" onClick={() => setOpenId(openId === o.id ? null : o.id)}>
-                    {openId === o.id ? 'Hide' : 'Details'}
-                  </button>
-                </td>
-              </tr>
-
-              {openId === o.id && (
-                <tr className="detail-row">
-                  <td colSpan="8">
-                    {o.shipping_name ? (
-                      <>
-                        <strong>Deliver to:</strong> {o.shipping_name} · {o.shipping_phone}
-                        <br />
-                        {o.shipping_address}, {o.shipping_city}, {o.shipping_country}
-                        {o.shipping_notes && (
-                          <>
-                            <br />
-                            <span style={{ color: 'var(--muted)' }}>Note: {o.shipping_notes}</span>
-                          </>
-                        )}
-                      </>
-                    ) : (
-                      <span style={{ color: 'var(--muted)' }}>No delivery details recorded for this order.</span>
-                    )}
+          {orders.map((o) => {
+            const locked = o.status === 'cancelled';
+            return (
+              <tbody key={o.id}>
+                <tr>
+                  <td><strong>#{o.id}</strong></td>
+                  <td>
+                    {o.customer_name}
+                    <div style={{ color: 'var(--muted)', fontSize: '.85rem' }}>{o.customer_email}</div>
+                  </td>
+                  <td>{new Date(o.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                  <td>{Number(o.item_count)}</td>
+                  <td>{formatPrice(o.total_amount)}</td>
+                  <td>
+                    <div style={{ fontSize: '.85rem', color: 'var(--muted)', marginBottom: 4 }}>
+                      {o.payment_method === 'cod' ? 'Cash on delivery' : 'Card'}
+                    </div>
+                    <select className="select" value={o.payment_status} disabled={locked} onChange={(e) => changePayment(o.id, e.target.value)}>
+                      <option value="unpaid">unpaid</option>
+                      <option value="paid">paid</option>
+                    </select>
+                  </td>
+                  <td>
+                    <select className="select" value={o.status} disabled={locked} onChange={(e) => changeStatus(o.id, e.target.value)}>
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setOpenId(openId === o.id ? null : o.id)}>
+                      {openId === o.id ? 'Hide' : 'Details'}
+                    </button>
                   </td>
                 </tr>
-              )}
-            </tbody>
-          ))}
+
+                {openId === o.id && (
+                  <tr className="detail-row">
+                    <td colSpan="8">
+                      {o.shipping_name ? (
+                        <>
+                          <strong>Deliver to:</strong> {o.shipping_name} · {o.shipping_phone}
+                          <br />
+                          {o.shipping_address}, {o.shipping_city}, {o.shipping_country}
+                          {o.shipping_notes && (
+                            <>
+                              <br />
+                              <span style={{ color: 'var(--muted)' }}>Note: {o.shipping_notes}</span>
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{ color: 'var(--muted)' }}>No delivery details recorded for this order.</span>
+                      )}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            );
+          })}
         </table>
       </div>
     </div>

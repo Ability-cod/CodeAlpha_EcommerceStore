@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, formatPrice, imageSrc, paymentLabel } from '../api';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Orders() {
   const { token } = useAuth();
+  const { notify } = useToast();
   const [orders, setOrders] = useState([]);
   const [openId, setOpenId] = useState(null);
   const [items, setItems] = useState({});
@@ -31,6 +33,17 @@ export default function Orders() {
       } catch (err) {
         setError(err.message);
       }
+    }
+  };
+
+  const handleCancel = async (order) => {
+    if (!window.confirm(`Cancel order #${order.id}? This cannot be undone.`)) return;
+    try {
+      await api(`/orders/${order.id}/cancel`, { method: 'PUT', token });
+      setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: 'cancelled' } : o)));
+      notify(`Order #${order.id} cancelled`);
+    } catch (err) {
+      notify(err.message, 'error');
     }
   };
 
@@ -115,6 +128,15 @@ export default function Orders() {
                     <span className={`badge ${order.payment_status}`}>{order.payment_status}</span>
                   </div>
                 </div>
+
+                {order.status === 'pending' && order.payment_status !== 'paid' && (
+                  <div className="order-actions">
+                    <button className="btn btn-danger btn-sm" onClick={() => handleCancel(order)}>
+                      Cancel order
+                    </button>
+                    <span>You can cancel while the order is still pending.</span>
+                  </div>
+                )}
               </div>
             )}
           </div>

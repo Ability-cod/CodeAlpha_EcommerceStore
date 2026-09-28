@@ -35,6 +35,71 @@ const validateShipping = (shipping = {}) => {
   return { data };
 };
 
+// Rules for who can cancel what
+const customerBlockReason = (order) => {
+  if (order.status === 'cancelled') return 'This order is already cancelled';
+  if (order.status !== 'pending') {
+    return 'Only pending orders can be cancelled. Please contact support for help with this order.';
+  }
+  if (order.payment_status === 'paid') {
+    return 'Paid orders cannot be cancelled online. Please contact support.';
+  }
+  return null;
+};
+
+const adminBlockReason = (order) => {
+  if (order.status === 'cancelled') return 'This order is already cancelled';
+  if (order.status === 'delivered') return 'Delivered orders cannot be cancelled';
+  return null;
+};
+
+// Cancels an order and puts the items back in stock, all in one transaction.
+// userId = null means "admin" (no ownership check).
+const cancelOrder = async (orderId, userId, getBlockReason) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [rows] = await connection.query(
+      'SELECT id, user_id, status, payment_status FROM orders WHERE id = ? FOR UPDATE',
+      [orderId]
+    );
+    const order = rows[0];
+
+    if (!order || (userId !== null && order.user_id !== userId)) {
+      await connection.rollback();
+      return { code: 404, error: 'Order not found' };
+    }
+
+    const reason = getBlockReason(order);
+    if (reason) {
+      await connection.rollback();
+      return { code: 400, error: reason };
+    }
+
+    const [items] = await connection.query(
+      'SELECT product_id, quantity FROM order_items WHERE order_id = ?',
+      [orderId]
+    );
+    for (const item of items) {
+      await connection.query('UPDATE products SET stock = stock + ? WHERE id = ?', [
+        item.quantity,
+        item.product_id
+      ]);
+    }
+
+    await connection.query("UPDATE orders SET status = 'cancelled' WHERE id = ?", [orderId]);
+
+    await connection.commit();
+    return { ok: true };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
 const checkout = async (req, res) => {
   const { items } = req.body;
   const userId = req.user.id;
@@ -175,8 +240,20 @@ const changeStatus = async (req, res) => {
     if (!STATUSES.includes(status)) {
       return res.status(400).json({ message: 'Invalid order status' });
     }
-    const affected = await updateOrderStatus(req.params.id, status);
-    if (!affected) return res.status(404).json({ message: 'Order not found' });
+
+    if (status === 'cancelled') {
+      const result = await cancelOrder(req.params.id, null, adminBlockReason);
+      if (result.error) return res.status(result.code).json({ message: result.error });
+      return res.json({ message: 'Order cancelled and stock restored' });
+    }
+
+    const [rows] = await pool.query('SELECT status FROM orders WHERE id = ?', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ message: 'Order not found' });
+    if (rows[0].status === 'cancelled') {
+      return res.status(400).json({ message: 'Cancelled orders cannot be changed' });
+    }
+
+    await updateOrderStatus(req.params.id, status);
     res.json({ message: 'Order status updated' });
   } catch (error) {
     console.error(error);
@@ -190,8 +267,16 @@ const changePayment = async (req, res) => {
     if (!PAYMENT_STATUSES.includes(paymentStatus)) {
       return res.status(400).json({ message: 'Invalid payment status' });
     }
-    const affected = await updatePaymentStatus(req.params.id, paymentStatus);
-    if (!affected) return res.status(404).json({ message: 'Order not found' });
+
+    const [rows] = await pool.query('SELECT status FROM orders WHERE id = ?', [req.params.id]);
+    if (!rows[0]) return res.status(404).json({ message: 'Order not found' });
+    if (rows[0].status === 'cancelled') {
+      return res
+        .status(400)
+        .json({ message: 'Payment cannot be changed for a cancelled order' });
+    }
+
+    await updatePaymentStatus(req.params.id, paymentStatus);
     res.json({ message: 'Payment status updated' });
   } catch (error) {
     console.error(error);
@@ -199,4 +284,23 @@ const changePayment = async (req, res) => {
   }
 };
 
-module.exports = { checkout, myOrders, orderDetails, allOrders, changeStatus, changePayment };
+const cancelMyOrder = async (req, res) => {
+  try {
+    const result = await cancelOrder(req.params.id, req.user.id, customerBlockReason);
+    if (result.error) return res.status(result.code).json({ message: result.error });
+    res.json({ message: 'Your order has been cancelled' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Something went wrong on the server' });
+  }
+};
+
+module.exports = {
+  checkout,
+  myOrders,
+  orderDetails,
+  allOrders,
+  changeStatus,
+  changePayment,
+  cancelMyOrder
+};

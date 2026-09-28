@@ -44,7 +44,7 @@ export default function Register() {
 
       <div className="field">
         <label htmlFor="name">Full name</label>
-        <input id="name" className="input" name="name" placeholder="Jane Doe" value={form.name} onChange={handleChange} required />
+        <input id="name" className="input" name="name" placeholder="Idan Isack" value={form.name} onChange={handleChange} required />
       </div>
       <div className="field">
         <label htmlFor="email">Email</label>

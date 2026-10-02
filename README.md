@@ -2,7 +2,7 @@
 
 A full-stack e-commerce web application built for the **CodeAlpha Full Stack Development Internship (Task 1: Simple E-commerce Store)**.
 
-Customers can browse products, fill a cart and place orders. Admins manage the catalogue (including image uploads) and the order lifecycle from a dashboard.
+Customers can browse products, manage a cart, check out with delivery details and cash on delivery, and track their orders. Admins manage the product catalogue (with image uploads) and the full order lifecycle from a dashboard.
 
 ## Features
 
@@ -11,18 +11,19 @@ Customers can browse products, fill a cart and place orders. Admins manage the c
 - Browse products with search, category filters and sorting
 - Product details page with live stock information
 - Shopping cart with quantity controls (saved in the browser)
-- Checkout with delivery details and **cash on delivery** payment
-- Order history with item details and status
+- Checkout with delivery address details and cash-on-delivery payment
+- Order history with item details, delivery info and payment status
+- Cancel a pending, unpaid order (stock is automatically restored)
 
 **Admin**
-- Dashboard with key numbers: products, orders, revenue and low-stock items
+- Dashboard with key numbers: products, orders, paid revenue and low-stock items
 - Add, edit and delete products with **image upload** and live preview
-- View all orders and update their status
-- See delivery details and mark orders as paid or unpaid
+- View all orders with delivery details, and update order status and payment status
+- Cancelled orders are locked from further changes
 
 **Quality and security**
 - Passwords hashed with bcrypt, JWT-protected routes, role-based access (customer / admin)
-- Checkout runs inside a database transaction with row locking to prevent overselling
+- Checkout and order cancellation run inside database transactions with row locking, preventing overselling and keeping stock accurate
 - Upload validation: image types only, 5MB limit, randomized file names
 - Responsive, modern UI with loading skeletons and toast notifications
 
@@ -39,7 +40,7 @@ Customers can browse products, fill a cart and place orders. Admins manage the c
 ## Project structure
 
 ```
-CodeAlpha_EcommerceStore/
+Task1_EcommerceStore/
 ├── backend/          Express API (routes, controllers, models, middleware)
 ├── frontend/         React app (pages, components, context)
 └── database/
@@ -52,8 +53,8 @@ CodeAlpha_EcommerceStore/
 
 1. **Clone the repository**
 ```bash
-   git clone https://github.com/YOUR_USERNAME/CodeAlpha_EcommerceStore.git
-   cd CodeAlpha_EcommerceStore
+   git clone https://github.com/YOUR_USERNAME/codealpha_tasks.git
+   cd codealpha_tasks/Task1_EcommerceStore
 ```
 
 2. **Create the database**
@@ -68,7 +69,7 @@ CodeAlpha_EcommerceStore/
    npm install
    cp .env.example .env
 ```
-   Open `.env`, set your database credentials and replace `JWT_SECRET` with a long random string. You can generate one with:
+   Open `.env`, set your database credentials and replace `JWT_SECRET` with a long random string. Generate one with:
 ```bash
    node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
@@ -84,7 +85,7 @@ CodeAlpha_EcommerceStore/
    npm install
    npm run dev
 ```
-   The app runs on http://localhost:5173. The API address is configured in `frontend/src/api.js`.
+   The app runs on http://localhost:5173.
 
 5. **Create an admin account**
    Register a normal account in the app, then promote it in MySQL:
@@ -104,12 +105,13 @@ CodeAlpha_EcommerceStore/
 | POST | `/api/products` | Admin | Add a product (multipart form with image) |
 | PUT | `/api/products/:id` | Admin | Update a product |
 | DELETE | `/api/products/:id` | Admin | Delete a product |
-| POST | `/api/orders/checkout` | Customer | Place an order from the cart |
+| POST | `/api/orders/checkout` | Customer | Place an order with delivery details |
 | GET | `/api/orders/my-orders` | Customer | List my orders |
 | GET | `/api/orders/:id/items` | Owner / Admin | Items in an order |
+| PUT | `/api/orders/:id/cancel` | Customer | Cancel my pending order, restoring stock |
 | GET | `/api/orders/all` | Admin | List all orders |
 | PUT | `/api/orders/:id/status` | Admin | Update order status |
-| PUT | `/api/orders/:id/payment` | Admin | Mark an order as paid or unpaid |
+| PUT | `/api/orders/:id/payment` | Admin | Update payment status |
 
 ## Planned improvements
 
